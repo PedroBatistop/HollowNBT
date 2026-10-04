@@ -4,11 +4,16 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+    tags:
+      - "v*"
     paths:
       - "src/**"
       - "Cargo.toml"
       - "Cargo.lock"
       - ".github/workflows/build-windows.yml"
+
+permissions:
+  contents: write
 
 jobs:
   windows:
@@ -30,3 +35,25 @@ jobs:
           name: HollowNBT-Windows-x64
           path: HollowNBT.exe
           if-no-files-found: error
+
+      - name: Publish v1.0 release
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view v1.0 --repo "$env:GITHUB_REPOSITORY" *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create v1.0 HollowNBT.exe --repo "$env:GITHUB_REPOSITORY" --target "$env:GITHUB_SHA" --title "HollowNBT v1.0" --notes "Primeira versão estável do HollowNBT para Windows x64. Aplicativo standalone em Rust com interface gráfica para processar schematics NBT."
+          }
+
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$env:GITHUB_REF_NAME" --repo "$env:GITHUB_REPOSITORY" *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create "$env:GITHUB_REF_NAME" HollowNBT.exe --repo "$env:GITHUB_REPOSITORY" --title "HollowNBT $env:GITHUB_REF_NAME" --generate-notes
+          }
