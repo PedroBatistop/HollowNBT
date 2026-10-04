@@ -37,14 +37,17 @@ jobs:
       - name: Publish source into repository
         shell: pwsh
         run: |
-          Get-ChildItem "unpacked/hollow_nbt_rust" -Force | ForEach-Object {
-            Copy-Item $_.FullName -Destination "." -Recurse -Force
-          }
+          $src = "unpacked/hollow_nbt_rust"
+          Copy-Item "$src/Cargo.toml" "Cargo.toml" -Force
+          Copy-Item "$src/Cargo.lock" "Cargo.lock" -Force
+          Copy-Item "$src/.gitignore" ".gitignore" -Force
+          Copy-Item "$src/README.md" "README.md" -Force
+          Copy-Item "$src/src" "src" -Recurse -Force
           Remove-Item -Recurse -Force unpacked
           Remove-Item -Force HollowNBT-source.zip
-          Remove-Item -Force .github/workflows/bootstrap.yml
+          if (Test-Path ".build-trigger") { Remove-Item -Force ".build-trigger" }
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Add Rust source and Windows build workflow [skip ci]"
+          git add Cargo.toml Cargo.lock .gitignore README.md src HollowNBT-source.zip .build-trigger
+          git commit -m "Add Rust source [skip ci]"
           git push
