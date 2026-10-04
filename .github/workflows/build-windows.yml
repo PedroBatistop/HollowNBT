@@ -1,0 +1,32 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/build-windows.yml"
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: Prepare executable
+        shell: pwsh
+        run: Copy-Item target/release/hollow-nbt.exe HollowNBT.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HollowNBT-Windows-x64
+          path: HollowNBT.exe
+          if-no-files-found: error
