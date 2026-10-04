@@ -1,0 +1,50 @@
+name: Bootstrap HollowNBT
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Extract source
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path unpacked | Out-Null
+          Expand-Archive -Path HollowNBT-source.zip -DestinationPath unpacked -Force
+
+      - name: Build Windows release
+        shell: pwsh
+        run: |
+          cargo build --release --manifest-path unpacked/hollow_nbt_rust/Cargo.toml
+          Copy-Item unpacked/hollow_nbt_rust/target/release/hollow-nbt.exe HollowNBT.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HollowNBT-Windows-x64
+          path: HollowNBT.exe
+          if-no-files-found: error
+
+      - name: Publish source into repository
+        shell: pwsh
+        run: |
+          Get-ChildItem "unpacked/hollow_nbt_rust" -Force | ForEach-Object {
+            Copy-Item $_.FullName -Destination "." -Recurse -Force
+          }
+          Remove-Item -Recurse -Force unpacked
+          Remove-Item -Force HollowNBT-source.zip
+          Remove-Item -Force .github/workflows/bootstrap.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add Rust source and Windows build workflow [skip ci]"
+          git push
